@@ -1,2 +1,2 @@
 # MovieRatingPrediction
-it's based on the MingSpore.
+it's based on the MindSpore.
