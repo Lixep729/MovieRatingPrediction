@@ -10,7 +10,7 @@ class RatingDataset:
         self.ratings = df['rating'].values.astype(np.float32)
 
     def __getitem__(self, index):
-        return (self.users[index], self.items[index]), self.ratings[index]
+        return self.users[index], self.items[index], self.ratings[index]
 
     def __len__(self):
         return len(self.users)
@@ -18,7 +18,7 @@ class RatingDataset:
 def get_dataloader(data_path, batch_size=256, shuffle=True):
     dataset = ds.GeneratorDataset(
         source=RatingDataset(data_path),
-        column_names=["ids", "rating"],
+        column_names=["user_id", "item_id", "rating"],
         shuffle=shuffle
     )
     dataset = dataset.batch(batch_size)
