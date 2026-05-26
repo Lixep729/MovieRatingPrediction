@@ -85,47 +85,67 @@ def train_and_predict(
     print(f"Predictions saved to {output_file}")
     return output_file
 
-
-# ==================== 主程序测试入口 ====================
+# ==================== 主程序：MF超参数对比实验 ====================
 if __name__ == "__main__":
+    import time
+    import numpy as np
+
     TRAIN_PATH = "data/processed/train.csv"
     TEST_PATH = "data/processed/test.csv"
-
     NUM_USERS = 944
     NUM_ITEMS = 1683
 
-    print("="*50)
-    print("Running quick test for MF model (dim=16)")
-    print("="*50)
+    # 固定参数
+    epochs = 10
+    lr = 0.001
+    batch_size = 256
+    dim_list = [8, 16, 32, 64]
 
-    train_and_predict(
-        model_class=MF,
-        model_name="mf_dim16_test",
-        train_path=TRAIN_PATH,
-        test_path=TEST_PATH,
-        num_users=NUM_USERS,
-        num_items=NUM_ITEMS,
-        epochs=3,
-        lr=0.001,
-        batch_size=256,
-        embedding_dim=16
-    )
+    exp_results = []
 
-    print("\n" + "="*50)
-    print("Running quick test for NCF model (layers=[64,32,16])")
-    print("="*50)
+    for emb_dim in dim_list:
+        print("="*60)
+        print(f"开始训练 MF - embedding_dim = {emb_dim}")
+        print("="*60)
 
-    train_and_predict(
-        model_class=NCF,
-        model_name="ncf_layer3_test",
-        train_path=TRAIN_PATH,
-        test_path=TEST_PATH,
-        num_users=NUM_USERS,
-        num_items=NUM_ITEMS,
-        epochs=3,
-        lr=0.001,
-        batch_size=256,
-        layers=[64, 32, 16]
-    )
+        start_time = time.time()
 
-    print("\nAll tests completed. Check outputs/ for prediction files.")
+        output_file = train_and_predict(
+            model_class=MF,
+            model_name=f"mf_dim{emb_dim}",
+            train_path=TRAIN_PATH,
+            test_path=TEST_PATH,
+            num_users=NUM_USERS,
+            num_items=NUM_ITEMS,
+            epochs=epochs,
+            lr=lr,
+            batch_size=batch_size,
+            embedding_dim=emb_dim
+        )
+
+        total_time = time.time() - start_time
+
+        # 读取预测文件，计算RMSE、MAE
+        df = pd.read_csv(output_file, header=None, names=["user_id","item_id","true_rating","pred_rating"])
+        true = df["true_rating"].values
+        pred = df["pred_rating"].values
+        rmse = np.sqrt(np.mean((true - pred) ** 2))
+        mae = np.mean(np.abs(true - pred))
+
+        exp_results.append({
+            "embedding_dim": emb_dim,
+            "train_time(s)": round(total_time,2),
+            "final_train_loss": None, # 后面手动填终端最后一行loss
+            "test_rmse": round(rmse,4),
+            "test_mae": round(mae,4)
+        })
+
+        print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
+
+    # 打印最终对比表格
+    print("="*80)
+    print("MF嵌入维度超参数对比结果")
+    print("="*80)
+    for res in exp_results:
+        print(f"dim={res['embedding_dim']:2d} | 耗时={res['train_time(s)']:6.2f}s | RMSE={res['test_rmse']:.4f} | MAE={res['test_mae']:.4f}")
+    print("="*80)
