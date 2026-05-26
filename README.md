@@ -1,22 +1,21 @@
 # MovieRatingPrediction
-µçÓ°ÆÀ·ÖÔ¤²â£¨»Ø¹éÈÎÎñ£©£¬»ùÓÚ MindSpore ÊµÏÖ¡£
+åŸºäºMindSporeçš„ç”µå½±è¯„åˆ†é¢„æµ‹é¡¹ç›®
 
-## »·¾³
+## ç¯å¢ƒ
 - Python 3.8/3.9
 - MindSpore 2.7.1.post1 (CPU)
-- °²×°£º`pip install mindspore==2.7.1.post1 pandas numpy matplotlib scikit-learn`
+- å®‰è£…å‘½ä»¤ï¼špip install mindspore==2.7.1.post1 pandas numpy matplotlib scikit-learn
 
-## Ä¿Â¼½á¹¹
-- `data/raw/`         Ô­Ê¼Êı¾İ
-- `data/processed/`   »®·ÖºóµÄ train.csv / test.csv
-- `src/`              Ô´´úÂë
-- `outputs/`          Ô¤²â½á¹û¡¢Í¼±í
-- `report/`           ±¨¸æÓëPPT
+## ç›®å½•ç»“æ„
+- data/raw/      åŸå§‹æ•°æ®
+- data/processed/ å¤„ç†åè®­ç»ƒé›†ä¸æµ‹è¯•é›† train.csv / test.csv
+- src/           æºä»£ç 
+- outputs/       é¢„æµ‹è¾“å‡ºç»“æœ
+- report/        é¡¹ç›®æŠ¥å‘Šä¸PPT
 
-## ·Ö¹¤
-- ³ÉÔ±A£º`data_loader.py` + `baselines.py`
-- ³ÉÔ±B£º`models.py` + `train.py`
-- ³ÉÔ±C£º`evaluate.py` + ±¨¸æ/PPT
+## åˆ†å·¥
+- æˆå‘˜Aï¼šdata_loader.py + baselines.py
+- æˆå‘˜Bï¼šmodels.py + train.py
+- æˆå‘˜Cï¼ševaluate.py + æŠ¥å‘ŠPPT
 
-## ÔËĞĞ·½Ê½
-   
+## è¿è¡Œæ–¹å¼
