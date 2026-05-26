@@ -17,7 +17,7 @@ def train_and_predict(
     epochs: int = 10,
     lr: float = 0.001,
     batch_size: int = 256,
-    **model_kwargs        # 传递给模型的参数，如 embedding_dim=32
+    **model_kwargs     
 ):
     
     # 1. 数据加载
@@ -103,16 +103,16 @@ if __name__ == "__main__":
 
     exp_results = []
 
-    for emb_dim in dim_list:
+    layers_list = [[64,32,16,8]]
+    for layers in layers_list:
         print("="*60)
-        print(f"开始训练 MF - embedding_dim = {emb_dim}")
+        print(f"开始训练 NCF - layers = {layers}")
         print("="*60)
 
         start_time = time.time()
-
         output_file = train_and_predict(
-            model_class=MF,
-            model_name=f"mf_dim{emb_dim}",
+            model_class=NCF,        
+            model_name=f"ncf_layers{layers}",
             train_path=TRAIN_PATH,
             test_path=TEST_PATH,
             num_users=NUM_USERS,
@@ -120,7 +120,7 @@ if __name__ == "__main__":
             epochs=epochs,
             lr=lr,
             batch_size=batch_size,
-            embedding_dim=emb_dim
+            layers=layers
         )
 
         total_time = time.time() - start_time
@@ -132,20 +132,28 @@ if __name__ == "__main__":
         rmse = np.sqrt(np.mean((true - pred) ** 2))
         mae = np.mean(np.abs(true - pred))
 
-        exp_results.append({
-            "embedding_dim": emb_dim,
-            "train_time(s)": round(total_time,2),
-            "final_train_loss": None, # 后面手动填终端最后一行loss
-            "test_rmse": round(rmse,4),
-            "test_mae": round(mae,4)
+    exp_results.append({
+        "layers": layers,
+        "train_time(s)": round(total_time,2),
+        "final_train_loss": None,
+        "test_rmse": round(rmse,4),
+        "test_mae": round(mae,4)
         })
 
-        print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
+    # MF用emb_dim，NCF用layers
+if 'embedding_dim' in locals():
+    print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
+else:
+    print(f"\nlayers{layers} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
 
-    # 打印最终对比表格
-    print("="*80)
-    print("MF嵌入维度超参数对比结果")
-    print("="*80)
-    for res in exp_results:
-        print(f"dim={res['embedding_dim']:2d} | 耗时={res['train_time(s)']:6.2f}s | RMSE={res['test_rmse']:.4f} | MAE={res['test_mae']:.4f}")
-    print("="*80)
+
+print("="*80)
+print("MF & NCF 模型对比结果")
+print("="*80)
+for res in exp_results:
+    if "embedding_dim" in res:
+        info = f"dim={res['embedding_dim']:2d}"
+    else:
+        info = f"layers={res['layers']}"
+    print(f"{info:12s} | 耗时={res['train_time(s)']:6.2f}s | RMSE={res['test_rmse']:.4f} | MAE={res['test_mae']:.4f}")
+print("="*80)
