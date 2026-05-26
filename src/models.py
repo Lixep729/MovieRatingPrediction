@@ -10,7 +10,7 @@ class MF(nn.Cell):
         self.item_embedding = nn.Embedding(num_items, embedding_dim)
         self.user_bias = nn.Embedding(num_users, 1)
         self.item_bias = nn.Embedding(num_items, 1)
-        self.global_bias = Parameter(ms.Tensor([0,0], ms.float32), name="global_bias")
+        self.global_bias = Parameter(ms.Tensor([0.0], ms.float32), name="global_bias")
         self.reduce_sum = ops.ReduceSum(keep_dims=False)
 
     def construct(self, user_ids, item_ids):
@@ -19,7 +19,8 @@ class MF(nn.Cell):
         dot = self.reduce_sum(u * v, 1)
         u_b = self.user_bias(user_ids).squeeze()
         i_b = self.item_bias(item_ids).squeeze()
-        return dot + u_b + i_b + self.global_bias
+        pred = dot + u_b + i_b + self.global_bias
+        return pred.squeeze()
 
 class NCF(nn.Cell):
     def __init__(self, num_users, num_items, layers):
@@ -38,10 +39,11 @@ class NCF(nn.Cell):
             mlp.append(nn.ReLU())
         mlp.append(nn.Dense(layers[-1], 1))
         self.mlp = nn.SequentialCell(mlp)
+        self.squeeze = ops.Squeeze(axis=1)
 
     def construct(self, user_ids, item_ids):
         u = self.user_embedding(user_ids)
         v = self.item_embedding(item_ids)
         concat = ops.Concat(axis=1)((u, v))
         out = self.mlp(concat)
-        return out.squeeze()
+        return self.squeeze(out)

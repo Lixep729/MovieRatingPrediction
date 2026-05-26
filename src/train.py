@@ -84,8 +84,6 @@ def train_and_predict(
     result_df.to_csv(output_file, index=False, header=False)
     print(f"Predictions saved to {output_file}")
     return output_file
-
-# ==================== 主程序：MF超参数对比实验 ====================
 if __name__ == "__main__":
     import time
     import numpy as np
@@ -100,19 +98,55 @@ if __name__ == "__main__":
     lr = 0.001
     batch_size = 256
     dim_list = [8, 16, 32, 64]
-
     exp_results = []
 
-    layers_list = [[64,32,16,8]]
-    for layers in layers_list:
+    # ============ MF超参对比实验 =============
+    for emb_dim in dim_list:
+        print("="*60)
+        print(f"开始训练 MF - embedding_dim = {emb_dim}")
+        print("="*60)
+
+        start_time = time.time()
+        output_file = train_and_predict(
+            model_class=MF,
+            model_name=f"mf_dim{emb_dim}",
+            train_path=TRAIN_PATH,
+            test_path=TEST_PATH,
+            num_users=NUM_USERS,
+            num_items=NUM_ITEMS,
+            epochs=epochs,
+            lr=lr,
+            batch_size=batch_size,
+            embedding_dim=emb_dim
+        )
+        total_time = time.time() - start_time
+
+        df = pd.read_csv(output_file, header=None, names=["user_id", "item_id", "true_rating", "pred_rating"])
+        true = df["true_rating"].values
+        pred = df["pred_rating"].values
+        rmse = np.sqrt(np.mean((true - pred) ** 2))
+        mae = np.mean(np.abs(true - pred))
+
+        exp_results.append({
+            "embedding_dim": emb_dim,
+            "train_time(s)": round(total_time,2),
+            "final_train_loss": None,
+            "test_rmse": round(rmse,4),
+            "test_mae": round(mae,4)
+        })
+        print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
+
+    # ========== NCF两种结构超参对比实验（本次新增） ==========
+    layers_list = [([64,32,16,8], "layer4"), ([128,64,32], "layer3")]
+    for layers, layer_name in layers_list:
         print("="*60)
         print(f"开始训练 NCF - layers = {layers}")
         print("="*60)
 
         start_time = time.time()
         output_file = train_and_predict(
-            model_class=NCF,        
-            model_name=f"ncf_layers{layers}",
+            model_class=NCF,
+            model_name=f"ncf_{layer_name}",
             train_path=TRAIN_PATH,
             test_path=TEST_PATH,
             num_users=NUM_USERS,
@@ -122,38 +156,31 @@ if __name__ == "__main__":
             batch_size=batch_size,
             layers=layers
         )
-
         total_time = time.time() - start_time
 
-        # 读取预测文件，计算RMSE、MAE
-        df = pd.read_csv(output_file, header=None, names=["user_id","item_id","true_rating","pred_rating"])
+        df = pd.read_csv(output_file, header=None, names=["user_id", "item_id", "true_rating", "pred_rating"])
         true = df["true_rating"].values
         pred = df["pred_rating"].values
         rmse = np.sqrt(np.mean((true - pred) ** 2))
         mae = np.mean(np.abs(true - pred))
 
-    exp_results.append({
-        "layers": layers,
-        "train_time(s)": round(total_time,2),
-        "final_train_loss": None,
-        "test_rmse": round(rmse,4),
-        "test_mae": round(mae,4)
+        exp_results.append({
+            "layers": layers,
+            "train_time(s)": round(total_time,2),
+            "final_train_loss": None,
+            "test_rmse": round(rmse,4),
+            "test_mae": round(mae,4)
         })
+        print(f"\nlayers{layers} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
 
-    # MF用emb_dim，NCF用layers
-if 'embedding_dim' in locals():
-    print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
-else:
-    print(f"\nlayers{layers} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
-
-
-print("="*80)
-print("MF & NCF 模型对比结果")
-print("="*80)
-for res in exp_results:
-    if "embedding_dim" in res:
-        info = f"dim={res['embedding_dim']:2d}"
-    else:
-        info = f"layers={res['layers']}"
-    print(f"{info:12s} | 耗时={res['train_time(s)']:6.2f}s | RMSE={res['test_rmse']:.4f} | MAE={res['test_mae']:.4f}")
-print("="*80)
+    # ========== 统一对比表格 ==========
+    print("="*80)
+    print("MF & NCF 模型综合对比结果")
+    print("="*80)
+    for res in exp_results:
+        if "embedding_dim" in res:
+            info = f"MF-dim={res['embedding_dim']:2d}"
+        else:
+            info = f"NCF-layers={res['layers']}"
+        print(f"{info:18s} | 耗时={res['train_time(s)']:6.2f}s | RMSE={res['test_rmse']:.4f} | MAE={res['test_mae']:.4f}")
+    print("="*80)
