@@ -1,14 +1,10 @@
-"""
-数据预处理与划分脚本
-读取 data/raw/ml-100k/u.data，打乱并划分 80% 训练 / 20% 测试，保存到 data/processed/
-"""
 import pandas as pd
 import os
 
 print("正在读取 data/raw/ml-100k/u.data ...")
 df = pd.read_csv(
     'data/raw/ml-100k/u.data',
-    sep='\t',                      # 制表符分隔
+    sep='\t',               
     header=None,
     names=['user_id', 'item_id', 'rating', 'timestamp']
 )
@@ -19,7 +15,7 @@ df.drop(columns=['timestamp'], inplace=True)
 print("已删除 timestamp 列")
 
 df = df.sample(frac=1, random_state=42).reset_index(drop=True)
-print("数据已随机打乱（seed=42）")
+print("数据已随机打乱")
 
 train_size = int(len(df) * 0.8)
 train_df = df.iloc[:train_size]
