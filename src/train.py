@@ -1,4 +1,3 @@
-# src/train.py
 import os
 import pandas as pd
 import mindspore as ms
@@ -8,8 +7,8 @@ from data_loader import get_dataloader
 
 
 def train_and_predict(
-    model_class,          # 模型类，如 MF 或 NCF
-    model_name: str,      # 用于命名输出文件，例如 "mf_dim32"
+    model_class,          # 模型类
+    model_name: str,      # 用于命名输出文件
     train_path: str,      # 训练集 CSV 路径
     test_path: str,       # 测试集 CSV 路径
     num_users: int,       # 用户总数
@@ -136,7 +135,7 @@ if __name__ == "__main__":
         })
         print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
 
-    # ========== NCF两种结构超参对比实验（本次新增） ==========
+    # ========== NCF两种结构超参对比实验 ==========
     layers_list = [([64,32,16,8], "layer4"), ([128,64,32], "layer3")]
     for layers, layer_name in layers_list:
         print("="*60)
@@ -173,7 +172,6 @@ if __name__ == "__main__":
         })
         print(f"\nlayers{layers} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
 
-    # ========== 统一对比表格 ==========
     print("="*80)
     print("MF & NCF 模型综合对比结果")
     print("="*80)
