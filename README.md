@@ -11,11 +11,10 @@
 - data/processed/ 处理后训练集与测试集 train.csv / test.csv
 - src/           源代码
 - outputs/       预测输出结果
-- report/        项目报告与PPT
 
 ## 分工
 - 成员A：data_loader.py + baselines.py
 - 成员B：models.py + train.py
-- 成员C：evaluate.py + 报告PPT
+- 成员C：evaluate.py + 报告
 
 ## 运行方式
