@@ -7,7 +7,6 @@ import seaborn as sns
 import mindspore as ms
 import mindspore.ops as ops
 
-# 基本画图设置,防止中文乱码
 sns.set_theme(style="whitegrid")
 plt.rcParams['font.sans-serif'] = ['SimHei', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False
@@ -116,7 +115,7 @@ def plot_item_grp(data_dir, train_file):
         plt.savefig(os.path.join(data_dir, "rmse_item.png"))
         plt.close()
 
-# 5.可视化：残差分布图，精选代表性模型避免线条过密
+# 5.可视化：残差分布图
 def plot_err_dist(data_dir):
     target_models = ['global_avg', 'user_avg', 'item_knn', 'mf_dim32', 'ncf_layer3']
     plt.figure(figsize=(8, 4.5))
@@ -201,7 +200,6 @@ def calc_sparse_gap(data_dir, train_file):
         print(gap_df)
         gap_df.to_csv(os.path.join(data_dir, "sparsity_analysis.csv"), index=False)
 
-#主运行流程
 if __name__ == "__main__":
     out_dir = "outputs"
     train_path = "data/processed/train.csv"
