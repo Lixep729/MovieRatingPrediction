@@ -1,7 +1,3 @@
-"""
-数据探索与分析脚本（美化版）
-生成统计信息 + 三张精美图表，保存到 outputs/
-"""
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
@@ -69,7 +65,7 @@ def main():
     plt.xlabel('Rating')
     plt.ylabel('Number of Ratings')
     plt.xticks([1, 2, 3, 4, 5])
-    plt.ylim(0, rating_counts.max() * 1.15)  # 留出标签空间
+    plt.ylim(0, rating_counts.max() * 1.15) 
     plt.grid(axis='y', alpha=0.3)
     plt.savefig('outputs/rating_distribution.png')
     plt.close()
@@ -84,7 +80,6 @@ def main():
     plt.xlabel('Number of Ratings')
     plt.ylabel('Number of Users')
     plt.grid(axis='y', alpha=0.3)
-    # 添加均值线
     mean_val = user_counts.mean()
     plt.axvline(mean_val, color='black', linestyle='--', linewidth=1.2,
                 label=f'Mean: {mean_val:.1f}')
