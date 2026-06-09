@@ -116,27 +116,89 @@ def plot_item_grp(data_dir, train_file):
         plt.close()
 
 # 5.可视化：残差分布图
-def plot_err_dist(data_dir):
-    target_models = ['global_avg', 'user_avg', 'item_knn', 'mf_dim32', 'ncf_layer3']
-    plt.figure(figsize=(8, 4.5))
-    
-    has_data = False
-    for m_name in target_models:
-        f = os.path.join(data_dir, f"pred_{m_name}.csv")
-        if os.path.exists(f):
-            df = pd.read_csv(f, header=None, names=['uid', 'iid', 'yt', 'yp'])
-            if len(df) > 0:
-                err = df['yt'] - df['yp']
-                sns.histplot(err, kde=True, label=m_name, stat="count", alpha=0.2, bins=30)
-                has_data = True
-        
-    if has_data:
-        plt.axvline(x=0, color='r', linestyle='--', label='Perfect')
-        plt.title("核心模型预测偏差（残差）分布图")
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(os.path.join(data_dir, "err_dist.png"))
+def plot_err_dist(data_dir, test_path='data/processed/test.csv'):
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import os
+
+    # 读取真实评分
+    test_df = pd.read_csv(test_path)
+    true_ratings = test_df['rating'].values
+
+    # 暖色系基线（左）
+    left_models = [
+        {'file': 'pred_global_avg.csv', 'label': 'Global Mean',    'color': '#F4A582', 'lw': 1.0},
+        {'file': 'pred_user_avg.csv',   'label': 'User Average',   'color': '#E8833A', 'lw': 1.2},
+        {'file': 'pred_item_knn.csv',   'label': 'Item-KNN',       'color': '#CA0020', 'lw': 1.5},
+    ]
+    # 冷色系高级模型（右）
+    right_models = [
+        {'file': 'pred_mf_dim64.csv',   'label': 'MF (dim=64)',     'color': '#0571B0', 'lw': 2.0},
+        {'file': 'pred_ncf_layer3.csv', 'label': 'NCF [128,64,32]', 'color': '#008837', 'lw': 2.0},
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharex=True)
+    # 注意：不共享y轴，避免基线曲线被压缩
+
+    # ----- 左图：基线模型 -----
+    ax = axes[0]
+    for mdl in left_models:
+        f = os.path.join(data_dir, mdl['file'])
+        if not os.path.exists(f):
+            print(f"⚠️ 文件缺失: {mdl['file']}")
+            continue
+        df = pd.read_csv(f, header=None)
+        if df.shape[1] == 3:
+            df.columns = ['uid', 'iid', 'yp']
+            yt = true_ratings
+            yp = df['yp'].values
+        else:  # 四列
+            df.columns = ['uid', 'iid', 'yt', 'yp']
+            yt = df['yt'].values
+            yp = df['yp'].values
+        err = yt - yp
+        sns.histplot(err, kde=True, label=mdl['label'], stat="density",
+                     bins=40, color=mdl['color'], alpha=0.35, linewidth=mdl['lw'], ax=ax)
+    ax.axvline(x=0, color='#333333', linestyle='--', linewidth=1.2)
+    ax.set_title('Baseline Models', fontsize=13, fontweight='bold')
+    ax.set_xlabel('Prediction Error', fontsize=11)
+    ax.set_ylabel('Density', fontsize=11)
+    ax.legend(fontsize=9, frameon=True)
+    ax.grid(axis='y', alpha=0.2)
+
+    # ----- 右图：高级模型 -----
+    ax = axes[1]
+    for mdl in right_models:
+        f = os.path.join(data_dir, mdl['file'])
+        if not os.path.exists(f):
+            print(f"⚠️ 文件缺失: {mdl['file']}")
+            continue
+        df = pd.read_csv(f, header=None)
+        if df.shape[1] == 3:
+            df.columns = ['uid', 'iid', 'yp']
+            yt = true_ratings
+            yp = df['yp'].values
+        else:
+            df.columns = ['uid', 'iid', 'yt', 'yp']
+            yt = df['yt'].values
+            yp = df['yp'].values
+        err = yt - yp
+        sns.histplot(err, kde=True, label=mdl['label'], stat="density",
+                     bins=40, color=mdl['color'], alpha=0.4, linewidth=mdl['lw'], ax=ax)
+    ax.axvline(x=0, color='#333333', linestyle='--', linewidth=1.2)
+    ax.set_title('Advanced Models', fontsize=13, fontweight='bold')
+    ax.set_xlabel('Prediction Error', fontsize=11)
+    ax.legend(fontsize=9, frameon=True)
+    ax.grid(axis='y', alpha=0.2)
+
+    plt.suptitle('Prediction Error Distribution Comparison', fontsize=15, fontweight='bold', y=1.01)
+    plt.tight_layout()
+    output_path = os.path.join(data_dir, 'err_dist_compare.png')
+    plt.savefig(output_path, dpi=200, bbox_inches='tight')
     plt.close()
+    print(f"✅ 图片已保存至 {output_path}")
 
 # 6.MF模型不同维度对RMSE的影响趋势图
 def plot_mf_trend(data_dir):
