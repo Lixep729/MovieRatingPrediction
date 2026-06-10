@@ -54,22 +54,22 @@ def predict_item_knn(train_df, test_df, K=20):
     user_idx = Tensor(train_df['user_id'].values.astype(np.int32) - 1)
     item_idx = Tensor(train_df['item_id'].values.astype(np.int32) - 1)
     ratings = Tensor(train_df['rating'].values.astype(np.float32))
-
+    #构建用户-物品评分矩阵
     indices = ops.Stack(axis=1)([user_idx, item_idx])
     shape = (int(n_users), int(n_items))
     R = ops.ScatterNd()(indices, ratings, shape)
-
-    item_vecs = ops.L2Normalize(axis=1)(ops.Transpose()(R, (1, 0)))
-    sim_matrix = ops.MatMul()(item_vecs, ops.Transpose()(item_vecs, (1, 0)))
-
-    eye = ops.Eye()(n_items, n_items, ms.float32)
+    #计算物品相似度矩阵
+    item_vecs = ops.L2Normalize(axis=1)(ops.Transpose()(R, (1, 0)))#归一化
+    sim_matrix = ops.MatMul()(item_vecs, ops.Transpose()(item_vecs, (1, 0)))#点积
+    #排除自身相似度
+    eye = ops.Eye()(n_items, n_items, ms.float32)#创建单位矩阵
     sim_matrix = sim_matrix - eye * 1e9
-
-    topk_values, topk_indices = ops.TopK()(sim_matrix, K)
+    #提取每个物品的 K 个最近邻
+    topk_values, topk_indices = ops.TopK()(sim_matrix, K)#沿行方向找出每个物品相似度最高的K个邻居
 
     test_users = Tensor(test_df['user_id'].values.astype(np.int32) - 1)
     test_items = Tensor(test_df['item_id'].values.astype(np.int32) - 1)
-    global_mean = ratings.mean().asnumpy().item()
+    global_mean = ratings.mean().asnumpy().item()#计算全局平均分，作为预测失败时的回退值
 
     pred_list = []
     for i in range(len(test_df)):
@@ -90,6 +90,7 @@ def predict_item_knn(train_df, test_df, K=20):
         valid_sims = ops.MaskedSelect()(neigh_sim, valid)
 
         if valid_ratings.shape[0] > 0:
+            #加权预测
             weighted_sum = ops.ReduceSum()(valid_ratings * valid_sims)
             norm = ops.ReduceSum()(ops.Abs()(valid_sims))
             if norm > 0:
