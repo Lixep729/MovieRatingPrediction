@@ -2,58 +2,40 @@ import pandas as pd
 import numpy as np
 import mindspore as ms
 from mindspore import Tensor, ops
-import mindspore.numpy as mnp
 
-def predict_user_mean(train_df, test_df):
-
-    n_users = int(max(train_df['user_id'].max(), test_df['user_id'].max()))
-
-    train_users = Tensor(train_df['user_id'].values.astype(np.int32) - 1)
-    train_ratings = Tensor(train_df['rating'].values.astype(np.float32))
-
-    user_means = unsorted_segment_mean_custom(train_ratings, train_users, n_users)
-
-    ones = ops.Ones()(train_ratings.shape, ms.float32)
-    user_counts = ops.unsorted_segment_sum(ones, train_users, n_users)
-
-    test_users = Tensor(test_df['user_id'].values.astype(np.int32) - 1)
-    preds = ops.gather(user_means, test_users, 0)
-    counts = ops.gather(user_counts, test_users, 0)
-
-    global_mean = train_ratings.mean()
-    cold_mask = ops.equal(counts, 0)
-    preds = ops.select(cold_mask,
-                       ops.fill(ms.float32, preds.shape, global_mean),
-                       preds)
+#模型A：全局平均分
+def predict_global_mean(train_df, test_df):
+    ratings = Tensor(train_df['rating'].values, ms.float32)
+    global_mean = ratings.mean().asnumpy().item()
 
     pred_df = test_df[['user_id', 'item_id']].copy()
-    pred_df['pred_rating'] = preds.asnumpy()
+    pred_df['pred_rating'] = global_mean
     return pred_df
 
-def unsorted_segment_mean_custom(data, segment_ids, num_segments):
-    num_segments = int(num_segments) 
+def unsorted_segment_mean(data, segment_ids, num_segments):
+    num_segments = int(num_segments)
     segment_sum = ops.unsorted_segment_sum(data, segment_ids, num_segments)
 
     ones = ops.Ones()(data.shape, ms.float32)
     segment_counts = ops.unsorted_segment_sum(ones, segment_ids, num_segments)
-
     segment_counts = ops.maximum(segment_counts, Tensor(1.0, ms.float32))
 
     return segment_sum / segment_counts
 
+#模型B：用户平均分
 def predict_user_mean(train_df, test_df):
     n_users = int(max(train_df['user_id'].max(), test_df['user_id'].max()))
 
     train_users = Tensor(train_df['user_id'].values.astype(np.int32) - 1)
     train_ratings = Tensor(train_df['rating'].values.astype(np.float32))
-    user_means = unsorted_segment_mean_custom(train_ratings, train_users, n_users)
+
+    user_means = unsorted_segment_mean(train_ratings, train_users, n_users)
     user_counts = ops.unsorted_segment_sum(ops.Ones()(train_ratings.shape, ms.float32), train_users, n_users)
 
     test_users = Tensor(test_df['user_id'].values.astype(np.int32) - 1)
-    preds = ops.Gather()(user_means, test_users, 0)      #预测值
-    counts = ops.Gather()(user_counts, test_users, 0)    #评分次数
+    preds = ops.Gather()(user_means, test_users, 0)
+    counts = ops.Gather()(user_counts, test_users, 0)
 
-    #冷启动处理
     global_mean = train_ratings.mean()
     cold_mask = ops.Equal()(counts, 0)
     preds = ops.Select()(cold_mask,
@@ -64,6 +46,7 @@ def predict_user_mean(train_df, test_df):
     pred_df['pred_rating'] = preds.asnumpy()
     return pred_df
 
+#模型C：Item-KNN
 def predict_item_knn(train_df, test_df, K=20):
     n_users = int(max(train_df['user_id'].max(), test_df['user_id'].max()))
     n_items = int(max(train_df['item_id'].max(), test_df['item_id'].max()))
@@ -73,26 +56,19 @@ def predict_item_knn(train_df, test_df, K=20):
     ratings = Tensor(train_df['rating'].values.astype(np.float32))
 
     indices = ops.Stack(axis=1)([user_idx, item_idx])
-
     shape = (int(n_users), int(n_items))
     R = ops.ScatterNd()(indices, ratings, shape)
-    
-    item_vecs = ops.Transpose()(R, (1, 0))
 
-    norms = ops.L2Normalize(axis=1)(item_vecs)
-
-    item_vecs = ops.L2Normalize(axis=1)(item_vecs)
+    item_vecs = ops.L2Normalize(axis=1)(ops.Transpose()(R, (1, 0)))
     sim_matrix = ops.MatMul()(item_vecs, ops.Transpose()(item_vecs, (1, 0)))
 
     eye = ops.Eye()(n_items, n_items, ms.float32)
     sim_matrix = sim_matrix - eye * 1e9
 
-    # 取top‑k
-    topk_values, topk_indices = ops.TopK()(sim_matrix, K) 
+    topk_values, topk_indices = ops.TopK()(sim_matrix, K)
 
     test_users = Tensor(test_df['user_id'].values.astype(np.int32) - 1)
     test_items = Tensor(test_df['item_id'].values.astype(np.int32) - 1)
-
     global_mean = ratings.mean().asnumpy().item()
 
     pred_list = []
@@ -101,7 +77,7 @@ def predict_item_knn(train_df, test_df, K=20):
         item = test_items[i]
 
         neigh_idx = topk_indices[item]
-        neigh_sim = topk_values[item]   
+        neigh_sim = topk_values[item]
 
         gather_indices = ops.Stack(axis=1)([
             ops.Fill()(ms.int32, (K,), u),
@@ -139,7 +115,7 @@ if __name__ == '__main__':
     train = pd.read_csv('data/processed/train.csv')
     test = pd.read_csv('data/processed/test.csv')
 
-    pred_a = predict_user_mean(train, test)
+    pred_a = predict_global_mean(train, test)
     save_predictions(pred_a, 'global_avg')
     print('模型A 已保存')
 
