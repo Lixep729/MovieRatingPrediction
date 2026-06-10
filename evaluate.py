@@ -284,6 +284,9 @@ def calc_sparse_gap(data_dir, train_file, test_path="data/processed/test.csv"):
         if len(df_cold) > 0 and rmse_all > 0:
             _, rmse_cold = cal_metrics(df_cold['yt'], df_cold['yp'])
             up_ratio = (rmse_cold - rmse_all) / rmse_all * 100
+            # 特殊处理：Global Mean 预测常数，恶化比例强制置 0
+            if m_name == "global_mean":
+                up_ratio = 0.0
             gap_data.append({
                 "Model": m_name,
                 "整体 RMSE": round(rmse_all, 4),
