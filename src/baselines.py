@@ -23,7 +23,7 @@ def unsorted_segment_mean(data, segment_ids, num_segments):
     return segment_sum / segment_counts
 
 #模型B：用户平均分
-def predict_user_mean(train_df, test_df):
+def predict_user_avg(train_df, test_df):
     n_users = int(max(train_df['user_id'].max(), test_df['user_id'].max()))
 
     train_users = Tensor(train_df['user_id'].values.astype(np.int32) - 1)
@@ -116,10 +116,10 @@ if __name__ == '__main__':
     test = pd.read_csv('data/processed/test.csv')
 
     pred_a = predict_global_mean(train, test)
-    save_predictions(pred_a, 'global_avg')
+    save_predictions(pred_a, 'global_mean')
     print('模型A 已保存')
 
-    pred_b = predict_user_mean(train, test)
+    pred_b = predict_user_avg(train, test)
     save_predictions(pred_b, 'user_avg')
     print('模型B 已保存')
 

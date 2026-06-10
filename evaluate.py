@@ -11,21 +11,15 @@ sns.set_theme(style="whitegrid")
 plt.rcParams['font.sans-serif'] = ['SimHei', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False
 
-# ============================================================
-# 通用工具
-# ============================================================
-
 def read_pred_file(filepath):
     """读取预测文件，自动跳过可能存在的表头行"""
-    df = pd.read_csv(filepath, header=None, dtype=str)  # 先全部按字符串读入
-    # 检查第一行第一列是否像数字，如果不是（如表头 'user_id'），则删除第一行
+    df = pd.read_csv(filepath, header=None, dtype=str) 
     first_val = df.iloc[0, 0]
     try:
         float(first_val)
-        # 是数字，不用删
     except ValueError:
         df = df.iloc[1:].reset_index(drop=True)
-    # 转换为数值类型
+
     df = df.apply(pd.to_numeric, errors='coerce')
     return df
 
@@ -38,16 +32,12 @@ def cal_metrics(yt, yp):
     rmse_val = ops.sqrt(ops.mean(ops.square(t_yt - t_yp)))
     return float(mae_val.asnumpy()), float(rmse_val.asnumpy())
 
-# ============================================================
 # 1. 全模型性能对比
-# ============================================================
-
 def eval_all(data_dir="outputs", test_path="data/processed/test.csv"):
-    test_df = pd.read_csv(test_path)  # test.csv 有表头：user_id,item_id,rating
+    test_df = pd.read_csv(test_path)
     true_all = test_df['rating'].values
 
     all_files = glob.glob(os.path.join(data_dir, "pred_*.csv"))
-    # 过滤掉测试文件（如果有的话），但不过滤任何模型
     files = [f for f in all_files if "_test.csv" not in f]
     res_list = []
 
@@ -78,12 +68,8 @@ def eval_all(data_dir="outputs", test_path="data/processed/test.csv"):
         print(res_df)
     return res_df
 
-# ============================================================
 # 2. 按用户活跃度分桶 RMSE 图
-# ============================================================
-
 def plot_user_grp(data_dir, train_file, test_path="data/processed/test.csv"):
-    # 读取训练集（有表头）
     tr_df = pd.read_csv(train_file)
     tr_df.columns = ['uid', 'iid', 'r']
     u_counts = tr_df['uid'].value_counts()
@@ -129,10 +115,7 @@ def plot_user_grp(data_dir, train_file, test_path="data/processed/test.csv"):
         plt.savefig(os.path.join(data_dir, "rmse_user.png"))
         plt.close()
 
-# ============================================================
 # 3. 按电影热度分桶 RMSE 图
-# ============================================================
-
 def plot_item_grp(data_dir, train_file, test_path="data/processed/test.csv"):
     tr_df = pd.read_csv(train_file)
     tr_df.columns = ['uid', 'iid', 'r']
@@ -179,16 +162,13 @@ def plot_item_grp(data_dir, train_file, test_path="data/processed/test.csv"):
         plt.savefig(os.path.join(data_dir, "rmse_item.png"))
         plt.close()
 
-# ============================================================
-# 4. 残差分布图（左右对比）
-# ============================================================
-
+# 4. 残差分布图
 def plot_err_dist(data_dir, test_path='data/processed/test.csv'):
     test_df = pd.read_csv(test_path)
     true_all = test_df['rating'].values
 
     left_models = [
-        {'file': 'pred_global_avg.csv', 'label': 'Global Mean',    'color': '#F4A582', 'lw': 1.0},
+        {'file': 'pred_global_mean.csv', 'label': 'Global Mean',    'color': '#F4A582', 'lw': 1.0},
         {'file': 'pred_user_avg.csv',   'label': 'User Average',   'color': '#E8833A', 'lw': 1.2},
         {'file': 'pred_item_knn.csv',   'label': 'Item-KNN',       'color': '#CA0020', 'lw': 1.5},
     ]
@@ -231,10 +211,7 @@ def plot_err_dist(data_dir, test_path='data/processed/test.csv'):
     plt.close()
     print(f"图片已保存至 {output_path}")
 
-# ============================================================
 # 5. MF 维度 - RMSE 趋势图
-# ============================================================
-
 def plot_mf_trend(data_dir):
     files = glob.glob(os.path.join(data_dir, "pred_mf_dim*.csv"))
     files = [f for f in files if "_test.csv" not in f]
@@ -250,7 +227,7 @@ def plot_mf_trend(data_dir):
             if df.shape[1] >= 4:
                 df.columns = ['uid', 'iid', 'yt', 'yp'] + [f'extra{i}' for i in range(df.shape[1]-4)]
             else:
-                continue  # MF 文件必定是4列
+                continue  
             _, rmse = cal_metrics(df['yt'], df['yp'])
             res.append({'Dim': dim, 'RMSE': rmse})
         except ValueError:
@@ -268,12 +245,9 @@ def plot_mf_trend(data_dir):
         plt.savefig(os.path.join(data_dir, "mf_dim_trend.png"))
         plt.close()
 
-# ============================================================
-# 6. 数据稀疏性专题分析（冷启动恶化比例）
-# ============================================================
 
+# 6. 数据稀疏性专题分析
 def calc_sparse_gap(data_dir, train_file, test_path="data/processed/test.csv"):
-    # 读取训练集（有表头）
     tr_df = pd.read_csv(train_file)
     tr_df.columns = ['uid', 'iid', 'r']
     u_counts = tr_df['uid'].value_counts()
@@ -298,7 +272,6 @@ def calc_sparse_gap(data_dir, train_file, test_path="data/processed/test.csv"):
         else:
             continue
 
-        # 安全转换为 int，并处理可能的 NaN
         df['uid'] = pd.to_numeric(df['uid'], errors='coerce')
         df = df.dropna(subset=['uid'])
         df['uid'] = df['uid'].astype(int)
@@ -323,10 +296,6 @@ def calc_sparse_gap(data_dir, train_file, test_path="data/processed/test.csv"):
         print("\n=== 数据稀疏性专题分析 ===")
         print(gap_df)
         gap_df.to_csv(os.path.join(data_dir, "sparsity_analysis.csv"), index=False)
-
-# ============================================================
-# 主程序
-# ============================================================
 
 if __name__ == "__main__":
     out_dir = "outputs"
