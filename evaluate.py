@@ -174,7 +174,7 @@ def plot_err_dist(data_dir, test_path='data/processed/test.csv'):
     ]
     right_models = [
         {'file': 'pred_mf_dim64.csv',   'label': 'MF (dim=64)',     'color': '#0571B0', 'lw': 2.0},
-        {'file': 'pred_ncf_layer3.csv', 'label': 'NCF [128,64,32]', 'color': '#008837', 'lw': 2.0},
+        {'file': 'pred_ncf_width64_depth2.csv', 'label': 'NCF [64,32,16,8]', 'color': '#008837', 'lw': 2.0},
     ]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharex=True)
