@@ -135,8 +135,8 @@ if __name__ == "__main__":
         })
         print(f"\ndim{emb_dim} 实验完成 | 耗时: {total_time:.2f}s | RMSE: {rmse:.4f} | MAE: {mae:.4f}\n")
 
-    # ========== NCF两种结构超参对比实验 ==========
-    layers_list = [([64,32,16,8], "layer4"), ([128,64,32], "layer3")]
+    # ========== NCF超参对比实验 ==========
+    layers_list = [([64, 32], "width64_depth2"), ([64,32,16,8], "layer4")]
     for layers, layer_name in layers_list:
         print("="*60)
         print(f"开始训练 NCF - layers = {layers}")
